@@ -9,7 +9,6 @@ setwd("your working directory")
 
 # necessary package; instal with install.packages("package") if necessary
 library(mvtnorm)
-library(infotheo)
 library(qgraph)
 library(ppcor)
 
@@ -26,8 +25,7 @@ names<- c("1FS", "2EC", "3PT_R", "4EC_R", "5FS", "6PD", "7FS_R",
 colnames(data) <- names
 
 # load scripts with the functions we need to calculate the info measures
-source("C:/path-to-script/info_theory.R") # information theoretic measures, based on R package infotheo
-source("C:/path-to-script/gcmi.R") # R code for gaussian copula mutual information estimation
+source("C:/path-to-script/info_theory.R") # information theoretic measures
   
 
 ##### Uncertainty and information #####
@@ -47,7 +45,7 @@ df_entropy<- data.frame(
   Mean = sapply(names, function(var) mean(data[[var]])),
   Variance = sapply(names, function(var) var(data[[var]])),
   MAD = sapply(names, function(var) mean(abs(data[[var]] - median(data[[var]])))),
-  Entropy_Hist = sapply(names, function(var) Entropy(data, var, discretized = TRUE, estimator = "mm")),
+  Entropy_Hist = sapply(names, function(var) Entropy(data, var, discrete = TRUE, estimator = "hist")),
   Entropy_par = sapply(names, function(var) Entropy(data, var, estimator = "cov")),
   stringsAsFactors = FALSE
 )
@@ -71,8 +69,8 @@ text(df_entropy$Variance[highlight_idx], df_entropy$Entropy_Hist[highlight_idx],
        
 axis(3, at = pretty(df_entropy$Variance), labels = round(pretty(df_entropy$Variance), 2), col = "red", col.axis = "red")
 mtext("Variance", side = 3, line = 3, cex = 1.5, col = "red")
-legend("topleft", pch = 19, col = c("black", "red"), 
-       legend = c("Entropy vs MAD", "Entropy vs Variance"), cex = 1.5)
+#legend("topleft", pch = 19, col = c("black", "red"), 
+#       legend = c("Entropy vs MAD", "Entropy vs Variance"), cex = 1.5)
 
 # Histograms for 12FS_R and 25PT
 par(mfrow=c(2,1))
@@ -106,7 +104,7 @@ distr <- data.frame(dist1, dist2, dist3, dist4, dist5, distT, distE)
 distVars <- sapply(distr, var)
 
 # Compute entropies
-distEnt <- sapply(names(distr), function(var) entropy_hist(distr, var, discrete = FALSE, units = "nats"))
+distEnt <- sapply(names(distr), function(var) Entropy(distr, var, discrete = FALSE, units = "nats", estimator = "hist"))
 
 # Define function for histogram plotting with dynamic labels
 plot_hist <- function(data, breaks, var_val, ent_val) {
@@ -154,9 +152,9 @@ mi_cov <- matrix(NA, nrow = n, ncol = n)
 
 for (i in seq_along(names)) {
   for (j in seq_along(names)) {
-    mi_HB[i, j] <- Mutual_Info(data, names[[i]], names[[j]], estimator = "mm", discretized = TRUE)
-    mi_cov[i, j] <- Mutual_Info(data, names[[i]], names[[j]], estimator = "cov")
-    mi_gc[i, j] <- Mutual_Info(data, names[[i]], names[[j]], estimator = "gc")
+    mi_HB[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "hist", discrete = TRUE)
+    mi_cov[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "cov")
+    mi_gc[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "gc")
   }
 }
 
@@ -273,7 +271,7 @@ shapes_names <- names(shapes_data)
 compute_assoc <- function(data) {
   list(
     correlation = cor(data$V1, data$V2),
-    MI_HB = Mutual_Info(data, "V1", "V2"),
+    MI_HB = Mutual_Info(data, "V1", "V2",discrete = F),
     MI_COV = Mutual_Info(data, "V1", "V2", estimator = "cov"),
     MI_GC = Mutual_Info(data, "V1", "V2", estimator = "gc")
   )
@@ -374,7 +372,7 @@ OI_cov <- vector(mode="numeric",length=dim(options)[2])
 
 for (i in 1:dim(options)[2]){
   print(dim(options)[2] - i)
-  OI_hb[i] <- O_Info(data,options[,i],discrete=T,estimator="mm")
+  OI_hb[i] <- O_Info(data,options[,i],discrete=T,estimator="hist")
   OI_cov[i] <- O_Info(data,options[,i],estimator="cov")
 }
 option_string <- c()
@@ -395,17 +393,17 @@ legend("topleft", legend = c("Histogram-based", "covariance-based"), fill = c(rg
 
 ## Calculate O-inf with bootstrap significance testing
 
-source("C:/path-to-script/bootstrap.R")
+source("C:/Users/nvsanten/OneDrive - UGent/Documenten/R Scripts/Information theory/bootstrap.R")
 
 
 #for most synergistic and redundant triplets according to OI_hb (table 1)
-syn_triple <- names[c(1,21,27)]
+syn_triple <- names[c(12,19,23)]
 
-syn_hb <- bootstrap_O_information(data,var=syn_triple,n=3,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "mm")
+syn_hb <- bootstrap_O_information(data,var=syn_triple,n=3,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "hist")
 
 red_triple <- names[c(16,23,26)]
 
-red_hb <- bootstrap_O_information(data,var=red_triple,n=3,nboot=1000,alpha=0.01,discrete= T, correction=T,estimator = "mm")
+red_hb <- bootstrap_O_information(data,var=red_triple,n=3,nboot=1000,alpha=0.01,discrete= T, correction=T,estimator = "hist")
 
 ## IID (n=4) ##
 
@@ -414,7 +412,7 @@ OI_hb <- vector(mode="numeric",length=dim(options4)[2])
 OI_cov <- vector(mode="numeric",length=dim(options4)[2])
 for (i in 1:dim(options4)[2]){
   print(dim(options4)[2] - i)
-  OI_hb[i] <- O_Info(data,options4[,i],discrete=T, estimator= "mm")
+  OI_hb[i] <- O_Info(data,options4[,i],discrete=T, estimator= "hist")
   OI_cov[i] <- O_Info(data,options4[,i],estimator="cov")
 }
 
@@ -434,9 +432,9 @@ barplot(Fourway_sorted$OI_cov, border = rgb(1, 0, 0, alpha = 0.4), col=rgb(1, 0,
 
 #bootstrap checking for highest synergistic and redundant quadruplet (table 1)
 
-syn_quad <- names[c(1,3,8,12)]
+syn_quad <- names[c(2,5,15,16)]
 
-syn_quad_hb <- bootstrap_O_information(data,var=syn_quad,n=4,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "mm")
+syn_quad_hb <- bootstrap_O_information(data,var=syn_quad,n=4,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "hist")
 
 red_quad <- names[c(5,16,23,26)]
 
@@ -444,16 +442,16 @@ red_quad_cov <- bootstrap_O_information(data,var=red_quad,n=4,nboot=1000,alpha=0
 
 ## PID (triplets) ## (table 2)
 
-# S=1FS, R={21PT,27PD} (highest synergy dominated triplet)
-PID_MMI(data,"1FS",c("21PT","27PD"),estimator = "mm",discretized = T)
+# S=12FS_R, R={19PD_R,23FS} (highest synergy dominated triplet)
+PID_MMI(data,"12FS_R",c("19PD_R","23FS"),estimator = "hist",discrete = T)
 
 # S=16FS, R={23FS,26FS} (highest redundancy dominated triplet)
-PID_MMI(data,"16FS",c("23FS","26FS"),estimator = "mm",discretized = T)
+PID_MMI(data,"16FS",c("23FS","26FS"),estimator = "hist",discrete = T)
 
 ## PID (quadruplets) ## (table C4)
 
-# S=1FS, R={3PT_R,8PT,12FS_R} (highest synergy dominated quadruplet)
-PID_MMI(data,"1FS",c("3PT_R","8PT","12FS_R"),estimator = "mm",discretized=T)
+# S=2EC, R={5FS,15PT_R,16FS} (highest synergy dominated quadruplet)
+PID_MMI(data,"2EC",c("5FS","15PT_R","16FS"),estimator = "hist",discrete=T)
 
 # S=x1, R={x6,x8,x9} (highest redundancy dominated quadruplet)
-PID_MMI(data,"5FS",c("16FS","23FS","26FS"),estimator = "mm",discretized = T)
+PID_MMI(data,"5FS",c("16FS","23FS","26FS"),estimator = "hist",discrete = T)
