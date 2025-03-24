@@ -83,7 +83,7 @@ entropy_hist <- function(data , X, discrete, binning, units, biascorrection){
   p_states <- state_counts / N
   
   if(biascorrection){
-    K <- length(state_counts)
+    K <- sum(table(data_discretized) != 0)
     entropy <- -sum(p_states * log2(p_states/bin_correction), na.rm = TRUE) + (K - 1)/(2*N*log(2))
   } else {
     entropy <- -sum(p_states * log2(p_states/bin_correction), na.rm = TRUE)
@@ -287,9 +287,10 @@ mutual_info_hist <- function(data , X, Y, discrete, binning, units, biascorrecti
   
   if(biascorrection) {
     
-    #correction <- - ((length(state_counts_X) - 1) + (length(state_counts_Y) - 1) - (length(state_counts_joint) - 1))/(2*N*log(2))
+    K_X <- sum(table(data_discretized[X]) != 0)
+    K_Y <- sum(table(data_discretized[Y]) != 0)
     
-    correction <- (length(state_counts_X) - 1)*(length(state_counts_Y) - 1)/(2*N*log(2))
+    correction <- (K_X - 1)*(K_Y - 1)/(2*N*log(2))
       
   } else {correction <- 0}
   
