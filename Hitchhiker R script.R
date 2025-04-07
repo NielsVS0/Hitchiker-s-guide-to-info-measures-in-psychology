@@ -74,10 +74,10 @@ mtext("Variance", side = 3, line = 3, cex = 1.5, col = "red")
 
 # Histograms for 12FS_R and 25PT
 par(mfrow=c(2,1))
-hist(data[["12FS_R"]],main="12FS_R",xlab='scores',cex.lab=1.5, cex.axis=1.3)
+hist(data[["12FS_R"]],breaks=seq(-0.5, 4.5, by=1), main="12FS_R",xlab='',cex.lab=1.5, cex.axis=1.3)
 abline(v = c(median(data[["12FS_R"]]),mean(data[["12FS_R"]])), col=c('blue','red'), lwd = 2, lty = 'dashed')
 legend("topleft", lty='dashed', col=c('blue','red'),legend=c('median','mean'),cex=1.5)
-hist(data[["25PT"]],main="25PT",xlab='scores',cex.lab=1.5, cex.axis=1.3)
+hist(data[["25PT"]],breaks=seq(-0.5, 4.5, by=1), main="25PT",xlab='scores',cex.lab=1.5, cex.axis=1.3)
 abline(v = c(median(data[["25PT"]]),mean(data[["25PT"]])), col=c('blue','red'), lwd = 2, lty = 'dashed')
 
 #### Figure 3: Entropy of different distributions ####
