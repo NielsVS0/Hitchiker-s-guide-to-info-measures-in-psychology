@@ -15,18 +15,17 @@ library(ppcor)
 # load the dataset (Empathy data can be found at https://data.mendeley.com/datasets/b8d5n5h3gc/1)
 data <- read.csv(file="C:\\path-to-data\\data.csv",header = TRUE,sep = ";")
 
-# names
-names<- c("1FS", "2EC", "3PT_R", "4EC_R", "5FS", "6PD", "7FS_R", 
+# item names
+items <- c("1FS", "2EC", "3PT_R", "4EC_R", "5FS", "6PD", "7FS_R", 
           "8PT","9EC", "10PD", "11PT", "12FS_R", "13PD_R", "14EC_R", "15PT_R", 
           "16FS", "17PD", "18EC_R", "19PD_R", "20EC", "21PT", "22EC", "23FS", 
           "24PD", "25PT", "26FS", "27PD", "28PT")
 
-# column names
-colnames(data) <- names
+# set column names
+colnames(data) <- items
 
 # load scripts with the functions we need to calculate the info measures
 source("C:/path-to-script/info_theory.R") # information theoretic measures
-  
 
 ##### Uncertainty and information #####
 
@@ -41,12 +40,12 @@ plot(p,entropy,pch=19,ylab="H(p) (bits)",xlab="p",cex.lab=1.3, cex.axis=1.5)
 
 # Initialize dataframe
 df_entropy<- data.frame(
-  Variable = names,
-  Mean = sapply(names, function(var) mean(data[[var]])),
-  Variance = sapply(names, function(var) var(data[[var]])),
-  MAD = sapply(names, function(var) mean(abs(data[[var]] - median(data[[var]])))),
-  Entropy_Hist = sapply(names, function(var) Entropy(data, var, discrete = TRUE, estimator = "hist")),
-  Entropy_par = sapply(names, function(var) Entropy(data, var, estimator = "cov")),
+  Variable = items,
+  Mean = sapply(items, function(var) mean(data[[var]])),
+  Variance = sapply(items, function(var) var(data[[var]])),
+  MAD = sapply(items, function(var) mean(abs(data[[var]] - median(data[[var]])))),
+  Entropy_Hist = sapply(items, function(var) Entropy(data, var, discrete = TRUE, estimator = "hist",biascorrection = "mm",units = "nats")),
+  Entropy_par = sapply(items, function(var) Entropy(data, var, estimator = "cov",units="nats")),
   stringsAsFactors = FALSE
 )
 
@@ -69,15 +68,13 @@ text(df_entropy$Variance[highlight_idx], df_entropy$Entropy_Hist[highlight_idx],
        
 axis(3, at = pretty(df_entropy$Variance), labels = round(pretty(df_entropy$Variance), 2), col = "red", col.axis = "red")
 mtext("Variance", side = 3, line = 3, cex = 1.5, col = "red")
-#legend("topleft", pch = 19, col = c("black", "red"), 
-#       legend = c("Entropy vs MAD", "Entropy vs Variance"), cex = 1.5)
 
 # Histograms for 12FS_R and 25PT
 par(mfrow=c(2,1))
-hist(data[["12FS_R"]],breaks=seq(-0.5, 4.5, by=1), main="12FS_R",xlab='',cex.lab=1.5, cex.axis=1.3)
+hist(data[["12FS_R"]],main="12FS_R",xlab='scores',cex.lab=1.5, cex.axis=1.3)
 abline(v = c(median(data[["12FS_R"]]),mean(data[["12FS_R"]])), col=c('blue','red'), lwd = 2, lty = 'dashed')
 legend("topleft", lty='dashed', col=c('blue','red'),legend=c('median','mean'),cex=1.5)
-hist(data[["25PT"]],breaks=seq(-0.5, 4.5, by=1), main="25PT",xlab='scores',cex.lab=1.5, cex.axis=1.3)
+hist(data[["25PT"]],main="25PT",xlab='scores',cex.lab=1.5, cex.axis=1.3)
 abline(v = c(median(data[["25PT"]]),mean(data[["25PT"]])), col=c('blue','red'), lwd = 2, lty = 'dashed')
 
 #### Figure 3: Entropy of different distributions ####
@@ -89,13 +86,15 @@ set.seed(123)
 n <- 100000
 
 # Generate distributions
-dist1 <- c(rnorm(n / 2, mean = -2, sd = 0.6577446), rnorm(n / 2, mean = 2, sd = 0.6577446)) # Bimodal
-dist2 <- c(rnorm(n / 2, mean = -1.5, sd = 0.6577446), rnorm(n / 2, mean = 1.5, sd = 0.6577446)) # Less Bimodal
-dist3 <- c(rnorm(n / 2, mean = -1, sd = 0.6577446), rnorm(n / 2, mean = 1, sd = 0.6577446)) # mimick uniform with normal
-dist4 <- c(rnorm(n / 2, mean = -0.5, sd = 0.6577446), rnorm(n / 2, mean = 0.5, sd = 0.6577446)) # Near Gaussian
-dist5 <- rnorm(n, mean = 0, sd = 0.6577446) # Gaussian
+stdev <- 0.6577446
+
+dist1 <- c(rnorm(n / 2, mean = -2, sd = stdev), rnorm(n / 2, mean = 2, sd = stdev)) # Bimodal
+dist2 <- c(rnorm(n / 2, mean = -1.5, sd = stdev), rnorm(n / 2, mean = 1.5, sd = stdev)) # Less Bimodal
+dist3 <- c(rnorm(n / 2, mean = -1, sd = stdev), rnorm(n / 2, mean = 1, sd = stdev)) # mimick uniform with normal
+dist4 <- c(rnorm(n / 2, mean = -0.5, sd = stdev), rnorm(n / 2, mean = 0.5, sd = stdev)) # Near Gaussian
+dist5 <- rnorm(n, mean = 0, sd = stdev) # Gaussian
 distT <- rt(n, df = 3) * 0.38 # Heavy-tailed
-distE <- rexp(n, rate = 1 / 0.6577446) # Skewed
+distE <- rexp(n, rate = 1 / stdev) # Skewed
 
 # Store distributions in a data frame
 distr <- data.frame(dist1, dist2, dist3, dist4, dist5, distT, distE)
@@ -144,17 +143,19 @@ text(0.55, 4, labels = expression(I(X*";"*Y) %->% infinity ~ "as" ~ rho %->% 1),
 
 # plot cor vs MI in empathy data
 
-n <-length(names)  # Automatically detects number of variables
+source("C:/path-to-script/gcmi.R") #path to the R code used to calculate the mutual information via Gaussian copula
+
+n <-length(items)  # Automatically detects number of variables
 
 mi_gc <- matrix(NA, nrow = n, ncol = n)
 mi_HB <- matrix(NA, nrow = n, ncol = n)
 mi_cov <- matrix(NA, nrow = n, ncol = n)
 
-for (i in seq_along(names)) {
-  for (j in seq_along(names)) {
-    mi_HB[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "hist", discrete = TRUE)
-    mi_cov[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "cov")
-    mi_gc[i, j] <- Mutual_Info(data, names[i], names[j], estimator = "gc")
+for (i in seq_along(items)) {
+  for (j in seq_along(items)) {
+    mi_HB[i, j] <- Mutual_Info(data, items[i], items[j], estimator = "hist", discrete = TRUE, units = "nats")
+    mi_cov[i, j] <- Mutual_Info(data, items[i], items[j], estimator = "cov", units = "nats")
+    mi_gc[i, j] <- Mutual_Info(data, items[i], items[j], estimator = "gc", units = "nats")
   }
 }
 
@@ -187,7 +188,7 @@ colnames(merged_df) <- c("Variable1", "Variable2", "Correlation", "MI_gc", "MI_H
 
 
 # Display the result
-print(merged_df)
+head(merged_df)
 
 # Plot MI vs Correlation
 plot(merged_df$Correlation, merged_df$MI_gc, xlab = expression(rho), 
@@ -281,8 +282,6 @@ compute_assoc <- function(data) {
 assoc <- data.frame(relation = shapes_names, t(sapply(shapes_data, compute_assoc)))
 
 ### Plot Results ###
-
-dev.off()
 par(mfrow = c(2, 5))
 
 for (i in 1:length(shapes_names)) {
@@ -299,10 +298,7 @@ for (i in 1:length(shapes_names)) {
   mtext(paste("ρ =", rho, ";  I_HB =", I_HB), side = 3, cex = 1.5)
   mtext(paste("I_COV =", I_COV, ";  I_GC =", I_GC), side = 1, cex = 1.5)
 }
-
-
-
-
+dev.off()
 
 ##### Higher order information #####
 
@@ -365,55 +361,38 @@ dev.off()
 
 ## IID (n=3) ##
 
-options <- combn(names,3) # all combinations of triplets
+options3 <- combn(items,3) # all combinations of triplets
 
-OI_hb <- vector(mode="numeric",length=dim(options)[2]) 
-OI_cov <- vector(mode="numeric",length=dim(options)[2])
+OI_hb <- vector(mode="numeric",length=dim(options3)[2]) 
+OI_cov <- vector(mode="numeric",length=dim(options3)[2])
 
-for (i in 1:dim(options)[2]){
-  print(dim(options)[2] - i)
-  OI_hb[i] <- O_Info(data,options[,i],discrete=T,estimator="hist")
-  OI_cov[i] <- O_Info(data,options[,i],estimator="cov")
+for (i in 1:dim(options3)[2]){
+  #print(dim(options3)[2] - i)  # might take a minute
+  OI_hb[i] <- O_Info(data,options3[,i],discrete=T,estimator="hist", biascorrection = "mm",units = "nats")
+  OI_cov[i] <- O_Info(data,options3[,i],estimator="cov", units="nats")
 }
-option_string <- c()
-for (i in 1:dim(options)[2]){
-  option_string <- c(option_string,paste0(options[,i],collapse = " "))
+option3_string <- c()
+for (i in 1:dim(options3)[2]){
+  option3_string <- c(option3_string,paste0(options3[,i],collapse = " "))
 }
-Threewaystructure <- data.frame(option_string, OI_hb, OI_cov)
-#write.table(Threewaystructure, file="briganti_3waystructure.txt", append = FALSE, sep = " ", dec = ".",
-#            row.names = TRUE, col.names = TRUE)
+Threewaystructure <- data.frame(option3_string, OI_hb, OI_cov)
 
 Threeway_sorted <- Threewaystructure[order(Threewaystructure$OI_hb),]
 
-# figure 8
+# figure 8q
 barplot(Threeway_sorted$OI_hb, border = rgb(0, 0, 1, alpha = 0.4), col=rgb(0, 0, 1, alpha = 0.3),ylab="O-information (nats)",cex.lab=1.3,cex.ax=1.5)
 barplot(Threeway_sorted$OI_cov, border = rgb(1, 0, 0, alpha = 0.4), col=rgb(1, 0, 0, alpha = 0.3), add=TRUE, axes=F)
-legend("topleft", legend = c("Histogram-based", "covariance-based"), fill = c(rgb(0, 0, 1, alpha = 0.5), rgb(1, 0, 0, alpha = 0.5)),cex=1.5)
-
-
-## Calculate O-inf with bootstrap significance testing
-
-source("C:/Users/nvsanten/OneDrive - UGent/Documenten/R Scripts/Information theory/bootstrap.R")
-
-
-#for most synergistic and redundant triplets according to OI_hb (table 1)
-syn_triple <- names[c(12,19,23)]
-
-syn_hb <- bootstrap_O_information(data,var=syn_triple,n=3,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "hist")
-
-red_triple <- names[c(16,23,26)]
-
-red_hb <- bootstrap_O_information(data,var=red_triple,n=3,nboot=1000,alpha=0.01,discrete= T, correction=T,estimator = "hist")
+legend("topleft", legend = c("Histogram-based", "covariance-based"), fill = c(rgb(0, 0, 1, alpha = 0.5), rgb(1, 0, 0, alpha = 0.5)),cex=2)
 
 ## IID (n=4) ##
 
-options4 <- combn(names,4)
+options4 <- combn(items,4)
 OI_hb <- vector(mode="numeric",length=dim(options4)[2]) 
 OI_cov <- vector(mode="numeric",length=dim(options4)[2])
 for (i in 1:dim(options4)[2]){
-  print(dim(options4)[2] - i)
-  OI_hb[i] <- O_Info(data,options4[,i],discrete=T, estimator= "hist")
-  OI_cov[i] <- O_Info(data,options4[,i],estimator="cov")
+  #print(dim(options4)[2] - i) # might take a few mintues
+  OI_hb[i] <- O_Info(data,options4[,i],discrete=T, estimator= "hist", biascorrection = "mm", units="nats")
+  OI_cov[i] <- O_Info(data,options4[,i],estimator="cov", units="nats")
 }
 
 option4_string <- c()
@@ -426,32 +405,174 @@ Fourwaystructure <- data.frame(option4_string, OI_hb, OI_cov)
 
 Fourway_sorted <- Fourwaystructure[order(Fourwaystructure$OI_hb),]
 
-# figure 8
+# figure 8b
 barplot(Fourway_sorted$OI_hb, border = rgb(0, 0, 1, alpha = 0.4), col=rgb(0, 0, 1, alpha = 0.3),ylab="O-information (nats)", ylim=c(min(Fourway_sorted[c("OI_hb","OI_cov")]),max(Fourway_sorted[c("OI_hb","OI_cov")])),cex.lab=1.3,cex.ax=1.5)
 barplot(Fourway_sorted$OI_cov, border = rgb(1, 0, 0, alpha = 0.4), col=rgb(1, 0, 0, alpha = 0.3), add=TRUE, axes=F)
 
-#bootstrap checking for highest synergistic and redundant quadruplet (table 1)
+#### Figure 9; variable contributions for significant multiplets for n=3,4 ####
+# significant triplets
+triplet_signif <- surrSignif(data,order = 3,nsurr = 1000,units = "bits",ordered = T,visual = T,showsurrs = T)
+#save(Brig_triplet_signif,file="Brig_triplet_signif.Rdata")
+load("Brig_triplet_signif.Rdata")
 
-syn_quad <- names[c(2,5,15,16)]
+# figure 9a
 
-syn_quad_hb <- bootstrap_O_information(data,var=syn_quad,n=4,nboot=1000,alpha=0.01,discrete = T,correction=T,estimator = "hist")
+## --- Data (as in your environment) ---
+r_t <- Brig_triplet_signif$redundant_counts       # redundant quadruplets
+s_t <- Brig_triplet_signif$synergistic_counts     # synergistic quadruplets
+labels_t <- if ("variable" %in% names(Brig_triplet_signif)) Brig_triplet_signif$variable else names(r_t)
 
-red_quad <- names[c(5,16,23,26)]
+## --- Open a larger plotting device (works cross‑platform) ---
+dev.new(width = 14, height = 8)  # increase if labels are very long
 
-red_quad_cov <- bootstrap_O_information(data,var=red_quad,n=4,nboot=1000,alpha=0.01, correction=T,estimator = "cov")
+## --- Preserve current par and compute dynamic margins ---
+op <- par(no.readonly = TRUE)
+
+# Scale factor to make synergistic bars visible on the left axis (safe if s has zeros)
+rmax_t <- max(r_t, na.rm = TRUE)
+smax_t <- max(s_t, na.rm = TRUE)
+sf_t   <- if (smax_t > 0) rmax_t / smax_t else 1
+
+# Dynamic bottom margin (in inches) for vertical labels
+# Reduce cex if needed; add a bit of padding.
+label_in <- max(strwidth(labels_t, units = "inches", cex = 0.75), na.rm = TRUE)
+par(mai = c(label_in + 0.3, 0.7, 0.6, 0.9),  # bottom, left, top, right
+    xaxs = "i", mgp = c(2.6, 0.7, 0), cex.lab=1.3)        # compact axis/title spacing
+
+## --- Left axis limits (redundant counts) ---
+ylim_left_t  <- c(0, rmax_t * 1.15)
+ylim_right_t <- c(0, smax_t * 1.15)
+
+## --- Bars side-by-side (left scale) ---
+mids_t <- barplot(rbind(r_t, s_t * sf_t),
+                beside = TRUE,
+                col    = c(rgb(1, 0, 0, 0.5), rgb(0, 0, 1, 0.6)),
+                border = NA,
+                ylim   = ylim_left_t,
+                names.arg = rep("", length(r_t) * 2),  # we'll add centered labels manually
+                ylab   = "frequency (redundant triplets)",
+                main   = "variable contributions to significant triplets",
+                space  = c(0, 1),    # tighten within-pair spacing, gap between pairs
+                width  = 0.9)
+
+## --- Centered labels between each pair ---
+centers <- colMeans(mids_t)
+axis(1, at = centers, labels = labels_t, las = 3, cex.axis = 1.1)
+
+## --- Right y-axis for synergistic counts (original scale) ---
+ticks_right_t <- pretty(ylim_right_t, n = 6)
+axis(4, at = ticks_right_t * sf_t, labels = ticks_right_t)
+mtext("frequency (synergistic triplets)", side = 4, line = 3, cex = 1.3)
+
+## --- Legend ---
+legend("top",
+       legend = c("redundant triplets", "synergistic triplets"),
+       fill   = c(rgb(1, 0, 0, 0.5), rgb(0, 0, 1, 0.6)),
+       bty    = "n", cex = 1.5)
+
+par(op)  # restore
+
+# highest value redundant and synergistic triplet
+
+order_red <- order(Brig_triplet_signif$original_O[Brig_triplet_signif$significant],decreasing=T)
+Brig_triplet_signif$tuples[,Brig_triplet_signif$significant][,order_red][,1]
+Brig_triplet_signif$original_O[Brig_triplet_signif$significant][order_red][1]
+
+order_syn <- order(Brig_triplet_signif$original_O[Brig_triplet_signif$significant],decreasing=F)
+Brig_triplet_signif$tuples[,Brig_triplet_signif$significant][,order_syn][,1]
+Brig_triplet_signif$original_O[Brig_triplet_signif$significant][order_syn][1]
+
+# significant quadruplets:
+
+quad_signif <- surrSignif(data,order = 4,nsurr = 1000,units = "bits",ordered = T,visual = T,showsurrs = T)
+#save(Brig_quad_signif,file="Brig_quad_signif.Rdata")
+load("Brig_quad_signif.Rdata")
+
+# figure 9b
+
+## --- Data (as in your environment) ---
+r <- Brig_quad_signif$redundant_counts       # redundant quadruplets
+s <- Brig_quad_signif$synergistic_counts     # synergistic quadruplets
+labels <- if ("variable" %in% names(Brig_quad_signif)) Brig_quad_signif$variable else names(r)
+
+## --- Open a larger plotting device (works cross‑platform) ---
+dev.new(width = 14, height = 8)  # increase if labels are very long
+
+## --- Preserve current par and compute dynamic margins ---
+op <- par(no.readonly = TRUE)
+
+# Scale factor to make synergistic bars visible on the left axis (safe if s has zeros)
+rmax <- max(r, na.rm = TRUE)
+smax <- max(s, na.rm = TRUE)
+sf   <- if (smax > 0) rmax / smax else 1
+
+# Dynamic bottom margin (in inches) for vertical labels
+# Reduce cex if needed; add a bit of padding.
+label_in <- max(strwidth(labels, units = "inches", cex = 0.75), na.rm = TRUE)
+par(mai = c(label_in + 0.3, 0.7, 0.6, 0.9),  # bottom, left, top, right
+    xaxs = "i", mgp = c(2.6, 0.7, 0),cex.lab=1.3)        # compact axis/title spacing
+
+## --- Left axis limits (redundant counts) ---
+ylim_left  <- c(0, rmax * 1.15)
+ylim_right <- c(0, smax * 1.15)
+
+## --- Bars side-by-side (left scale) ---
+mids <- barplot(rbind(r, s * sf),
+                beside = TRUE,
+                col    = c(rgb(1, 0, 0, 0.5), rgb(0, 0, 1, 0.6)),
+                border = NA,
+                ylim   = ylim_left,
+                names.arg = rep("", length(r) * 2),  # we'll add centered labels manually
+                ylab   = "frequency (redundant quadruplets)",
+                main   = "variable contributions to significant quadruplets",
+                space  = c(0, 1),    # tighten within-pair spacing, gap between pairs
+                width  = 0.9)
+
+## --- Centered labels between each pair ---
+centers <- colMeans(mids)
+axis(1, at = centers, labels = labels, las = 3, cex.axis = 1.1)
+
+## --- Right y-axis for synergistic counts (original scale) ---
+ticks_right <- pretty(ylim_right, n = 6)
+axis(4, at = ticks_right * sf, labels = ticks_right)
+mtext("frequency (synergistic quadruplets)", side = 4, line = 3, cex=1.3)
+
+## --- Legend ---
+legend("top",
+       legend = c("redundant quadruplets", "synergistic quadruplets"),
+       fill   = c(rgb(1, 0, 0, 0.5), rgb(0, 0, 1, 0.6)),
+       bty    = "n", cex = 1.5)
+
+par(op)  # restore
+
+# highest value redundant and synergistic quadruplet
+
+order_red_q <- order(Brig_quad_signif$original_O[Brig_quad_signif$significant],decreasing=T)
+Brig_quad_signif$tuples[,Brig_quad_signif$significant][,order_red_q][,1]
+Brig_quad_signif$original_O[Brig_quad_signif$significant][order_red_q][1]
+
+order_syn_q <- order(Brig_quad_signif$original_O[Brig_quad_signif$significant],decreasing=F)
+Brig_quad_signif$tuples[,Brig_quad_signif$significant][,order_syn_q][,1]
+Brig_quad_signif$original_O[Brig_quad_signif$significant][order_syn_q][1]
 
 ## PID (triplets) ## (table 2)
 
 # S=12FS_R, R={19PD_R,23FS} (highest synergy dominated triplet)
-PID_MMI(data,"12FS_R",c("19PD_R","23FS"),estimator = "hist",discrete = T)
+PID(data,"1FS",c("21PT","27PD"),estimator = "hist",discrete = T, units="bits")
 
 # S=16FS, R={23FS,26FS} (highest redundancy dominated triplet)
-PID_MMI(data,"16FS",c("23FS","26FS"),estimator = "hist",discrete = T)
+PID(data,"16FS",c("23FS","26FS"),estimator = "hist",discrete = T, units="bits")
 
 ## PID (quadruplets) ## (table C4)
 
 # S=2EC, R={5FS,15PT_R,16FS} (highest synergy dominated quadruplet)
-PID_MMI(data,"2EC",c("5FS","15PT_R","16FS"),estimator = "hist",discrete=T)
+PID(data,"10PD",c("18EC_R","19PD_R","21PT"),estimator = "hist",discrete=T, units="bits")
+
 
 # S=x1, R={x6,x8,x9} (highest redundancy dominated quadruplet)
-PID_MMI(data,"5FS",c("16FS","23FS","26FS"),estimator = "hist",discrete = T)
+PID(data,"5FS",c("16FS","23FS","26FS"),estimator = "hist",discrete = T, units="bits")
+
+#### Figure 11; pairwise mutual info decomposition ####
+
+MI_decomp(data, target="1FS", driver= "5FS", estimator="gc", nsurr = 10, surrtype = "shuf",units="bits",visual = T)
+
